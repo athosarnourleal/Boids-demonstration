@@ -63,12 +63,12 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 		
 		int sw = 400,sh = 30,sx = 10,space = 10;
 		sliders = new Slider[6];
-		sliders[0] = new Slider(sx,space+(space+sh)*0,sw,sh,0,1,"kc");
-		sliders[1] = new Slider(sx,space+(space+sh)*1,sw,sh,0,10,"ka");
-		sliders[2] = new Slider(sx,space+(space+sh)*2,sw,sh,5,20,"ks");
-		sliders[3] = new Slider(sx,space+(space+sh)*3,sw,sh,0,10,"kb");
-		sliders[4] = new Slider(sx,space+(space+sh)*4,sw,sh,0,15000,"fbMax");
-		sliders[5] = new Slider(sx,space+(space+sh)*5,sw,sh,10,100,"vr");
+		sliders[0] = new Slider(sx,space+(space+sh)*0,sw,sh,0,1,"cohesion");
+		sliders[1] = new Slider(sx,space+(space+sh)*1,sw,sh,0,10,"allignment");
+		sliders[2] = new Slider(sx,space+(space+sh)*2,sw,sh,5,20,"separation");
+		sliders[3] = new Slider(sx,space+(space+sh)*3,sw,sh,0,10,"border");
+		sliders[4] = new Slider(sx,space+(space+sh)*4,sw,sh,0,15000,"border force max");
+		sliders[5] = new Slider(sx,space+(space+sh)*5,sw,sh,10,100,"vision radious");
 
 		sliders[0].set(kc);
 		sliders[1].set(ka);
@@ -138,7 +138,7 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 
 			Vector avgPos = new Vector(0,0);
 
-			int count = 0,positionCount = 0;
+			int count = 0;
 			for(int j = 0; j < num;j++) {// check surroundings	
 				
 				if (distPow(boid[i].pos,boid[j].pos) > sr) {
