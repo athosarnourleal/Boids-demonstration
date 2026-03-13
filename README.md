@@ -12,4 +12,5 @@ peixes evitam se aproximar muito de outros peixes á seu redor
 peixes evitam sair do campo
 ## User Interface
 são escondidas quando o botão direito do mouse não é pressionado, as barras podem ser arrastadas com o botao esquerdo para alterar constantes que influenciam a intensidade de cada força.
-
+## Quadtree
+para obter otimização, é usado o metodo quadtree, cuja funcionalidade pode ser demonstrada atravez das opções "show Quadtree" e "show QuadTree query demonstration"
