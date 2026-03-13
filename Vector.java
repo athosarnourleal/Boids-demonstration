@@ -75,6 +75,17 @@ public class Vector {
 		y = y * set;
 	}
 	
+	public void setMagO(double mag2) {// set mag optimized
+		if (mag2 == 0 || (x == 0 && y == 0)) {
+			x = 0;
+			y = 0;
+			return;
+		}
+		double set = mag2/mag();
+		x = x * set;
+		y = y * set;
+	}
+	
 	public static Vector pointV(Vector p1,Vector p2) {
 		return new Vector(p2.x-p1.x, p2.y-p1.y);
 	}

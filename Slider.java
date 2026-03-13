@@ -10,6 +10,7 @@ public class Slider {
 	public double min = 0, max = 0;
 	public boolean clicked = false;
 	public String label = " ";
+	public boolean showInt = false;
 
 	public Slider(int x,int y,int w,int h,double min,double max) {
 		this.x = x;
@@ -62,6 +63,9 @@ public class Slider {
 	
 	public void set(double val) {
 		wVal = (int)((val-min)*w/(max-min));
+		if (wVal < val) {
+			wVal++;
+		}
 		wVal = clamp(wVal,0,w);
 	}
 	
@@ -91,7 +95,11 @@ public class Slider {
 			
 		}
 		g.setColor(Color.green);
-		g.drawString(label+":"+value(),x+w, y+h);
+		if (showInt == true) {
+			g.drawString(" "+label+":"+(int)value(),x+w, y+h);
+		} else {
+			g.drawString(" "+label+":"+value(),x+w, y+h);
+		}
 		
 	}
 	

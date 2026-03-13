@@ -24,14 +24,16 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 	public JFrame frame;
 	public Thread thread = new Thread(this);
 	
-	public int num = 1000;
-	public Fish[] boid;
+	public int num = 100;
+	public static Fish[] boid;
 	public int vr = 30; // vision radious
 	
 	public static boolean click = false,rclick = false;
 	public static int mx = 0,my = 0;
 	
 	public Slider[] sliders;
+	public Button[] buttons;
+	public Rectangle uiBox = new Rectangle(0,0,0,0);
 	
 	public double 
 			kc = 0.5, 
@@ -39,36 +41,85 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 			ks = 15,
 			kb = 1;
 	
-	public double fbMax = 5000;
+	public double fbMax = 1000;
 	
+	public int max = 4;
+	public static int placed = 0;
+	public Qtree qt;
 	public Vector showVector;
+	
+	public Rectangle Rmouse;
+	public int[] mouseFound;
+	public int frameRate = 0;
 	
 	public Game() {
 		this.setPreferredSize(new Dimension(W,H));
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
 		
+		qt = new Qtree(0,0,W,H,max);
 		boid = new Fish[num];
 		for(int i = 0; i < num;i++) {
 			boid[i] = new Fish();
+			qt.insert(i);
 		}
 		
+		Rmouse = new Rectangle(0,0,0,0);
+		
+		System.out.println("placed: "+placed);
 		setUI();
 		
 		initFrame();
 		thread.start();
 	}
 	
+	public void setBoid() {
+		qt = new Qtree(0,0,W,H,max);
+		boid = new Fish[num];
+		for(int i = 0; i < num;i++) {
+			boid[i] = new Fish();
+			qt.insert(i);
+		}
+	}
+	
 	public void setUI() {
 		
 		int sw = 400,sh = 30,sx = 10,space = 10;
-		sliders = new Slider[6];
-		sliders[0] = new Slider(sx,space+(space+sh)*0,sw,sh,0,1,"cohesion");
-		sliders[1] = new Slider(sx,space+(space+sh)*1,sw,sh,0,10,"allignment");
-		sliders[2] = new Slider(sx,space+(space+sh)*2,sw,sh,5,20,"separation");
-		sliders[3] = new Slider(sx,space+(space+sh)*3,sw,sh,0,10,"border");
-		sliders[4] = new Slider(sx,space+(space+sh)*4,sw,sh,0,15000,"border force max");
-		sliders[5] = new Slider(sx,space+(space+sh)*5,sw,sh,10,100,"vision radious");
+		int pos = 0;
+		sliders = new Slider[8];
+		buttons = new Button[5];
+		sliders[0] = new Slider(sx,space+(space+sh)*pos,sw,sh,0,1,"cohesion");
+		pos++;
+		sliders[1] = new Slider(sx,space+(space+sh)*pos,sw,sh,0,10,"allignment");
+		pos++;
+		sliders[2] = new Slider(sx,space+(space+sh)*pos,sw,sh,0,30,"separation");
+		pos++;
+		sliders[3] = new Slider(sx,space+(space+sh)*pos,sw,sh,0,10,"border");
+		pos++;
+		sliders[4] = new Slider(sx,space+(space+sh)*pos,sw,sh,0,15000,"border force max");
+		pos++;
+		sliders[5] = new Slider(sx,space+(space+sh)*pos,sw,sh,10,100,"vision radious");
+		pos++;
+		sliders[7] = new Slider(sx,space+(space+sh)*pos,sw,sh,10,500,"Query demonstration size");
+		sliders[7].showInt = true;
+		pos++;
+		buttons[4] = new Button(sx,space+(space+sh)*pos,sh,"show QuadTree query demonstration",false);
+		pos++;
+		
+		buttons[0] = new Button(sx,space+(space+sh)*pos,sh,"show fish",true);
+		pos++;
+		buttons[1] = new Button(sx,space+(space+sh)*pos,sh,"show quadtree",false);
+		pos++;
+		buttons[2] = new Button(	sx,space+(space+sh)*pos,sh,"fish move",true);
+		pos++;
+		sliders[6] = new Slider(sx,space+(space+sh)*pos,(int)(sw*2.5),sh,100,15000,"number");
+		sliders[6].showInt = true;
+		pos++;
+		buttons[3] = new Button(sx*3,space+(space+sh)*pos,sh,"apply new boid number",false);
+		pos++;
+
+		uiBox.width = sw*3;
+		uiBox.height = space+(space+sh)*pos;
 
 		sliders[0].set(kc);
 		sliders[1].set(ka);
@@ -76,6 +127,8 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 		sliders[3].set(kb);
 		sliders[4].set(fbMax);
 		sliders[5].set(vr);
+		sliders[6].set(num);
+		sliders[7].set(50);
 		
 	}
 	
@@ -92,12 +145,22 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 	}
 	
 	public void updateMouse(MouseEvent e) {
-		mx = e.getX();
-		my = e.getY();
+		Rectangle scr = getBounds();
+		int xoff = scr.width/2-W/2, yoff = scr.height/2-H/2;
+		mx = e.getX()-xoff;
+		my = e.getY()-yoff;
 	}
 	
 	public void clickCheck() {
 		Rectangle Rm = new Rectangle(mx,my,1,1);
+		
+		for(int i = 0;i < buttons.length;i++) {
+			if (Rm.intersects(buttons[i].col)) {
+				buttons[i].clicked();
+				break;
+			}
+		}
+		
 		for(int i = 0;i < sliders.length;i++) {
 			if (Rm.intersects(sliders[i].getRect())) {
 				sliders[i].clicked = true;
@@ -111,7 +174,32 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 	}
 	
 	public void tick() {
+		frame.setTitle("boids - "+frameRate);
 		
+		if (buttons[3].state == true) {
+			num = (int)sliders[6].value();
+			setBoid();
+			buttons[3].state = false;	
+			mouseFound = new int[0];
+			return;
+		}
+		
+		// atualizar quadtree
+		qt.reset();
+		for(int i = 0; i < num;i++) {
+			qt.insert(i);
+		}
+		
+		// arrumar demonstração //
+
+		Rmouse.width = (int)sliders[7].value();
+		Rmouse.height = (int)sliders[7].value();
+		Rmouse.x = mx-Rmouse.width/2;
+		Rmouse.y = my-Rmouse.height/2;
+		
+		mouseFound = qt.Querry(Rmouse);
+		
+		// atualizar variaveis
 		for(int i = 0;i < sliders.length;i++) {
 			sliders[i].tick();
 		}
@@ -123,39 +211,43 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 		fbMax = sliders[4].value();
 		vr = (int) sliders[5].value();
 		
-		
-		fishTick();
+		// rodar codigo
+		if (buttons[2].state == true) {
+			fishTick();
+		}
 	}
 	
 	public void fishTick() {// update fishes //
 		double sr = Math.pow(vr,2); // vision radious squared
 		
-		for(int i = 0;i < num;i++) {
+		int checks = 0;
+		for(int i = 0;i < boid.length;i++) {// divide loading into chunks
 			// for each fish
 			Vector fa = new Vector(0,0); // alignment
 			Vector fs = new Vector(0,0);// separation
 			Vector fc = new Vector(0,0); // cohesion
 
 			Vector avgPos = new Vector(0,0);
-
 			int count = 0;
-			for(int j = 0; j < num;j++) {// check surroundings	
-				
-				if (distPow(boid[i].pos,boid[j].pos) > sr) {
+			int[] look = qt.Querry(boid[i].pos.x,boid[i].pos.y,vr);
+			for(int j = 0; j < look.length;j++) {// check surroundings
+				int id = look[j];
+				checks++;
+				if (distPow(boid[i].pos,boid[id].pos) > sr) {
 					continue;// isnt in range
 				}
 				
-				avgPos.add(boid[j].pos);
+				avgPos.add(boid[id].pos);
 				
-				if (i == j) {
+				if (i == id) {
 					continue; // is the same
 				}
 				
 				count++;
-				fa.add(boid[j].vel);
+				fa.add(boid[id].vel);
 				
 				Vector v = new Vector(0,0);
-				v.add(Vector.pointV(boid[j].pos,boid[i].pos));
+				v.add(Vector.pointV(boid[id].pos,boid[i].pos));
 				if (v.magPow() != 0) {
 					v.setMag(ks*Fish.velMag/v.magPow());
 					
@@ -194,6 +286,8 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 				boid[i].force(Fb[j]);
 			}
 			
+			boid[i].move();
+			
 			//wrap around
 			
 			if (boid[i].pos.x > W) {
@@ -209,9 +303,9 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 			if (boid[i].pos.y < 0) {
 				boid[i].pos.y += H;
 			}
-			
-			boid[i].move();
 		}
+		
+//		System.out.println("checks: "+checks);
 	}
 	
 	public void render() {
@@ -227,40 +321,69 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 		
 		g.setColor(Color.black);
 		g.fillRect(0,0,W,H);
-
-		// draw fish //
-
-		if (sliders[5].clicked == true) {
-			for(int i = 0; i < num;i++) {
-				Vector p = boid[i].pos;
-				g.setColor(Color.DARK_GRAY);
-				g.fillOval((int)(p.x-vr), (int)(p.y-vr), (int)(vr*2), (int)(vr*2));
+		
+		// draw tree //
+		
+		if (buttons[1].state == true) {
+			qt.render(g);
+		}
+		// draw querry demonstration //
+		
+		if (buttons[4].state == true) {
+			g.setColor(Color.green);
+			g.drawRect(Rmouse.x,Rmouse.y,Rmouse.width,Rmouse.height);
+			int circleR = 5;
+			for(int i = 0;i < mouseFound.length;i++) {
+				Vector fishpos = boid[mouseFound[i]].pos;
+				g.drawOval((int)(fishpos.x-circleR),(int)(fishpos.y-circleR),circleR*2,circleR*2);
 			}
 		}
 		
-		int fishRadious = 2;
-		for(int i = 0; i < num;i++) {
-			Vector p = boid[i].pos;
-			Vector v = boid[i].vel;
+		// draw fish //
+
+		if (buttons[0].state == true) {
+			if (sliders[5].clicked == true) {
+				for(int i = 0; i < num;i++) {
+					Vector p = boid[i].pos;
+					g.setColor(Color.DARK_GRAY);
+					g.fillOval((int)(p.x-vr), (int)(p.y-vr), (int)(vr*2), (int)(vr*2));
+				}
+			}
 			
-			g.setColor(Color.magenta);
-			g.drawLine((int)(p.x), (int)(p.y), (int)(p.x+v.x), (int)(p.y+v.y));
-			
-			g.setColor(Color.red);
-			g.fillRect((int)(p.x-fishRadious),(int)(p.y-fishRadious),fishRadious*2,fishRadious*2);
+			int fishRadious = 3;
+			double mult = 2	;
+			for(int i = 0; i < num;i++) {
+				Vector p = boid[i].pos;
+				Vector v = boid[i].vel;
+				
+				g.setColor(Color.magenta);
+				g.drawLine((int)(p.x), (int)(p.y), (int)(p.x+v.x*mult), (int)(p.y+v.y*mult));
+				
+				g.setColor(Color.red);
+				g.fillRect((int)(p.x-fishRadious),(int)(p.y-fishRadious),fishRadious*2,fishRadious*2);
+			}
 		}
 		
-		// draw Sliders // 
+		// draw UI // 
 		
 		if (rclick == true) {
+			g.setColor(Color.black);
+			g.fillRect(uiBox.x,uiBox.y,uiBox.width,uiBox.height);
+			g.setColor(Color.blue);
+			g.drawRect(uiBox.x,uiBox.y,uiBox.width,uiBox.height);
 			for(int i = 0; i < sliders.length;i++) {
 				sliders[i].render(g);
 			}
-			
+			for(int i = 0; i < buttons.length;i++) {
+				buttons[i].render(g);
+			}
 		}
 		
 		g = bs.getDrawGraphics();
-		g.drawImage(screen,0,0,W,H,null);
+		Rectangle scr = getBounds();
+		g.setColor(Color.black);
+		g.fillRect(scr.x,scr.y,scr.width,scr.height);
+		g.drawImage(screen,scr.width/2-W/2,scr.height/2-H/2,W,H,null);
 		
 		bs.show();
 	}
@@ -290,7 +413,7 @@ public class Game extends Canvas implements Runnable,MouseListener,MouseMotionLi
 			}
 			
 			if (System.currentTimeMillis() - timer >= 1000) {
-				System.out.println("FPS: "+frames);
+				frameRate = frames;
 				frames = 0;
 				timer += 1000;
 			}

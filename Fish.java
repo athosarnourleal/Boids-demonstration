@@ -10,7 +10,7 @@ public class Fish {
 	
 	public Fish() {
 		Random r = new Random();
-		pos = new Vector(r.nextGaussian()*Game.W, r.nextGaussian()*Game.H);
+		pos = new Vector(r.nextInt(Game.W), r.nextInt(Game.H));
 		vel = new Vector(velMag);
 		acc = new Vector(0,0);
 	}
